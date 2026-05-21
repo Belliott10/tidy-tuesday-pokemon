@@ -2,14 +2,15 @@ name: Render R Markdown to PDF
 
 on:
   push:
-    branches: [main]
+    paths:
+      - '**.Rmd'
 
 jobs:
   render:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up R
@@ -24,29 +25,25 @@ jobs:
             libcurl4-openssl-dev \
             libssl-dev \
             libxml2-dev \
-            pandoc \
-            texlive-latex-base \
-            texlive-fonts-recommended \
-            texlive-latex-extra
+            pandoc
 
-      - name: Install rmarkdown first
-        run: Rscript -e "install.packages('rmarkdown', repos='https://cloud.r-project.org')"
-
-      - name: Install remaining packages
+      - name: Install R packages
         run: |
           Rscript -e "install.packages(c(
-            'tidyverse', 'ggplot2', 'knitr',
+            'rmarkdown', 'tinytex', 'tidyverse', 'ggplot2', 'knitr',
             'gt', 'plotly', 'janitor', 'tidytuesdayR',
             'ggimage', 'curl', 'png', 'grid'
           ), repos='https://cloud.r-project.org')"
 
+      - name: Install TinyTeX
+        run: Rscript -e "tinytex::install_tinytex()"
+
       - name: Render PDF
         run: Rscript -e "rmarkdown::render('Pokemon-Tidy-Tuesday.Rmd', output_format='pdf_document')"
 
-      - name: Commit and push PDF
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Actions"
-          git add Pokemon-Tidy-Tuesday.pdf
-          git commit -m "Add rendered PDF [skip ci]" || echo "No changes to commit"
-          git push
+      - name: Commit rendered PDF
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Add rendered PDF [skip ci]"
+          file_pattern: Pokemon-Tidy-Tuesday.pdf
+          branch: main
