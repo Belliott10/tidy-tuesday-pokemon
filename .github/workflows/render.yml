@@ -27,7 +27,7 @@ jobs:
             texlive-fonts-recommended \
             texlive-latex-extra
 
-            - name: Install R packages
+      - name: Install R packages
         run: |
           Rscript -e "
           lib <- '/home/runner/R/library'
