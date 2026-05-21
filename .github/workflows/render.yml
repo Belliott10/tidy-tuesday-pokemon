@@ -27,17 +27,25 @@ jobs:
             texlive-fonts-recommended \
             texlive-latex-extra
 
-      - name: Install R packages
+            - name: Install R packages
         run: |
-          Rscript -e "install.packages(c(
+          Rscript -e "
+          lib <- '/home/runner/R/library'
+          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+          .libPaths(lib)
+          install.packages(c(
             'rmarkdown', 'tidyverse', 'ggplot2', 'knitr',
             'gt', 'plotly', 'janitor', 'tidytuesdayR',
             'ggimage', 'curl', 'png', 'grid'
-          ), repos='https://cloud.r-project.org')"
+          ), lib = lib, repos='https://cloud.r-project.org')
+          "
 
       - name: Render PDF
         run: |
-          Rscript -e "rmarkdown::render('Pokemon-Tidy-Tuesday.Rmd', output_format='pdf_document')"
+          Rscript -e "
+          .libPaths('/home/runner/R/library')
+          rmarkdown::render('Pokemon-Tidy-Tuesday.Rmd', output_format='pdf_document')
+          "
 
       - name: Commit and push PDF
         run: |
