@@ -36,17 +36,24 @@ jobs:
 
       - name: Install R packages
         run: |
-          Rscript -e "install.packages(c(
+          Rscript -e "
+          .libPaths('/home/runner/R/library')
+          install.packages(c(
             'rmarkdown', 'tinytex', 'tidyverse', 'ggplot2', 'knitr',
             'gt', 'plotly', 'janitor', 'tidytuesdayR',
             'ggimage', 'curl', 'png', 'grid'
-          ), repos='https://cloud.r-project.org')"
+          ), lib='/home/runner/R/library', repos='https://cloud.r-project.org')
+          "
 
       - name: Install TinyTeX
         run: Rscript -e "tinytex::install_tinytex()"
 
       - name: Render PDF
-        run: Rscript -e "rmarkdown::render('Pokemon-Tidy-Tuesday.Rmd', output_format='pdf_document')"
+        run: |
+          Rscript -e "
+          .libPaths('/home/runner/R/library')
+          rmarkdown::render('Pokemon-Tidy-Tuesday.Rmd', output_format='pdf_document')
+          "
 
       - name: Commit rendered PDF
         uses: stefanzweifel/git-auto-commit-action@v5
