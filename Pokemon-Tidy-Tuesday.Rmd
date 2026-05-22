@@ -9,6 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+.libPaths('/home/runner/R/library')
 # Load libraries
 library(tidyverse)
 library(ggplot2)
@@ -45,7 +46,7 @@ For the full interactive experience, you can check out the RPubs version of this
 
 ```{r}
 # Load TidyTuesday data
- pokemon_data <- tidytuesdayR::tt_load(2025, week = 13)
+pokemon_data <- tidytuesdayR::tt_load(2025, week = 13)
 pokemon_data <- pokemon_data$pokemon_df
 
 # Clean column names
@@ -55,10 +56,11 @@ pokemon_data <- janitor::clean_names(pokemon_data)
 ## Data Cleaning and Preparation
 
 ```{r}
-# 1. # Compute total stats and Add Legendary flag
+# 1. Compute total stats and Add Legendary flag
 pokemon_df <- pokemon_data %>%
   mutate(
-    total = hp + attack + defense + special_attack + special_defense + speed,  legendary = ifelse(total > 600, "Legendary", "Not Legendary")
+    total = hp + attack + defense + special_attack + special_defense + speed,
+    legendary = ifelse(total > 600, "Legendary", "Not Legendary")
   )
 
 # 3. Fix missing or broken image URLs:
@@ -84,7 +86,7 @@ type_summary <- pokemon_data %>%
 kable(type_summary, caption = "Pokémon Count by Primary Type")
 ```
 
-Water‑types are the most common (126), followed by Normal (111) and Grass (84), while Flying‑only Pokémon are the rarest (4).
+Water-types are the most common (126), followed by Normal (111) and Grass (84), while Flying-only Pokémon are the rarest (4).
 
 ## Step 1: Summary Stats by Type
 
@@ -103,22 +105,22 @@ pokemon_summary <- pokemon_df %>%
 pokemon_summary
 ```
 
-Dragon‑types boast the highest average Attack (*\~*108.7), and Flying‑types dominate in average highest Speed (*\~*102.5), whereas Fairy‑types sit at the bottom for both stats (*\~*61 Attack, *\~*53.6 Speed) and Steel‑types are the heaviest (\~225.6 kg).
+Dragon-types boast the highest average Attack (~108.7), and Flying-types dominate in average highest Speed (~102.5), whereas Fairy-types sit at the bottom for both stats (~61 Attack, ~53.6 Speed) and Steel-types are the heaviest (~225.6 kg).
 
 ## Step 2: Identify Top Pokémon per Type
 
 ```{r}
-#  Using species_id to build sprite URLs
+# Using species_id to build sprite URLs
 fastest_pokemon <- pokemon_df %>%
-  filter(!is.na(speed)) %>% 
+  filter(!is.na(speed)) %>%
   group_by(type_1) %>%
   slice_max(order_by = speed, n = 1, with_ties = FALSE) %>%
-  select(type_1, pokemon, speed, url_image, species_id) %>% 
+  select(type_1, pokemon, speed, url_image, species_id) %>%
   ungroup()
 fastest_pokemon
 ```
 
-Deoxys‑Speed tops all types with a Speed of 180, Ninjask rules Bug‑types at 160, and Electrode is the fastest Electric‑type at 150.
+Deoxys-Speed tops all types with a Speed of 180, Ninjask rules Bug-types at 160, and Electrode is the fastest Electric-type at 150.
 
 ## Step 3: Combine Summaries
 
@@ -133,7 +135,7 @@ pokemon_type_stats <- pokemon_summary %>%
   )
 ```
 
-This combined table brings together each type’s average Speed and the single fastest Pokémon, making it easy to compare overall trends against individual standouts.
+This combined table brings together each type's average Speed and the single fastest Pokémon, making it easy to compare overall trends against individual standouts.
 
 ## Fixing: Ensure All Images Are Valid
 
@@ -143,10 +145,7 @@ library(curl)
 # Define fallback
 fallback_img <- "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
 
-```
-
-```{r}
-# Create zero‑padded IDs
+# Create zero-padded IDs
 pokemon_type_stats <- pokemon_type_stats %>%
   mutate(
     sprite  = sprintf("%03d", species_id),
@@ -157,7 +156,6 @@ pokemon_type_stats <- pokemon_type_stats %>%
   )
 
 # Validate & fallback to Poké Ball
-library(curl)
 fallback <- "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
 valid   <- map_lgl(pokemon_type_stats$sprite_url,
                   ~ tryCatch(curl_fetch_memory(.x)$status_code == 200,
@@ -167,19 +165,16 @@ pokemon_type_stats <- pokemon_type_stats %>%
   mutate(img = if_else(valid, sprite_url, fallback))
 ```
 
-Needed accurate Pokemon images and make sure they are valid.
-
 ## Step 4: Plotting Average Speed by Type with Images
 
-Generating Real Sprite URLs by `species_id`
-
 ```{r}
-library(ggplot2); library(ggimage)
+library(ggplot2)
+library(ggimage)
 
 ggplot(pokemon_type_stats,
        aes(y = reorder(type_1, avg_speed), x = avg_speed)) +
-geom_col(width = 0.6, fill = "#FFCB05", color = "#3B4CCA") +
-geom_image(aes(image = img),
+  geom_col(width = 0.6, fill = "#FFCB05", color = "#3B4CCA") +
+  geom_image(aes(image = img),
              by = "height", size = 0.08,
              nudge_x = max(pokemon_type_stats$avg_speed) * 0.02) +
   geom_text(aes(label = fastest),
@@ -204,12 +199,6 @@ geom_image(aes(image = img),
   )
 ```
 
-In this bar chart above, Flying and Electric types (Noivern, Electrode) lead in average Speed, while Fairy‑types (Comfey) trail, with each bar labeled and annotated by the corresponding sprite.
-
-## 
-
-This interactive plotly version allows us hover over each type’s bar to see the exact average Speed and fastest Pokémon name.
-
 ## Step 5: Average Attack by Type
 
 ```{r}
@@ -221,36 +210,25 @@ strongest_attackers <- pokemon_data %>%
   ungroup() %>%
   select(type_1, species_id, strongest = pokemon)
 
-pokemon_type_stats <- pokemon_type_stats %>%
-  left_join(strongest_attackers, by = "type_1")
-
-```
-
-```{r}
 # Join the strongest attackers to the pokemon_type_stats
 pokemon_type_stats <- pokemon_type_stats %>%
   left_join(strongest_attackers, by = "type_1") %>%
   mutate(
     img = paste0(
       "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/",
-      species_id.y, ".png"  # Use species_id.y or rename it appropriately
+      species_id.y, ".png"
     ),
-    strongest = ifelse(is.na(strongest.y), "Unknown", strongest.y)  # Fill missing values if any
+    strongest = ifelse(is.na(strongest.y), "Unknown", strongest.y)
   ) %>%
-  select(-contains(".x"))  # Remove any columns that have ".x" suffix (duplicates)
+  select(-contains(".x"))
 
 # Plot
 ggplot(pokemon_type_stats, aes(y = reorder(type_1, avg_attack), x = avg_attack)) +
-  
   geom_col(width = 0.6, fill = "#FF7F50", color = "#3B4CCA") +
-  
   geom_image(aes(image = img), by = "height", size = 0.08, nudge_x = max(pokemon_type_stats$avg_attack) * 0.02) +
-  
   geom_text(aes(label = strongest), hjust = 0, nudge_x = max(pokemon_type_stats$avg_attack) * 0.07, size = 4) +
-  
   scale_x_continuous(expand = expansion(mult = c(0, 0.3))) +
   coord_cartesian(clip = "off") +
-  
   labs(
     title = "Pokémon Types by Attack",
     subtitle = "Sprites: Strongest Pokémon per Attack & Type",
@@ -267,8 +245,6 @@ ggplot(pokemon_type_stats, aes(y = reorder(type_1, avg_attack), x = avg_attack))
   )
 ```
 
-Dragon and Fighting types (Rayquaza‑Mega, Lucario‑Mega) top in average Attack, while Fairy‑types (Xerneas) come in last, again highlighted by each type’s strongest attacker and sprite.
-
 ## Top 10 Pokémon by Total Stats
 
 ```{r}
@@ -283,12 +259,9 @@ top_10 <- pokemon_data %>%
 kable(top_10, caption = "Top 10 Pokémon by Total Stats")
 ```
 
-The Mega Evolutions of Mewtwo and Rayquaza top the charts (780), followed by Primal Kyogre and Groudon.
-
 ## Legendary Pokémon by Generation
 
 ```{r}
-
 pokemon_data <- pokemon_data %>%
   mutate(legendary = ifelse(total > 600, "Legendary", "Not Legendary"))
 
@@ -297,26 +270,20 @@ legendary_summary <- pokemon_data %>%
   summarize(count = n()) %>%
   ungroup()
 
-# Plot
 ggplot(legendary_summary, aes(x = factor(generation_id), y = count, fill = legendary)) +
   geom_col(position = "dodge") +
   labs(title = "Legendary Pokémon by Generation",
        x = "Generation", y = "Count")
 ```
 
-After flagging any Pokémon with total stats \> 600 as “Legendary,” I counted them by generation. Excluding those with no generation_id (mostly form variants), Generation 4 leads with 5 legendaries, followed by Generation 3 (with 4) and Gen 5 (with 3). Generations 2, 6, and 7 each have 2, and Generation 1 has just 1. This shows that the bulk of “core” legendary designs appeared in Generations 3–5, with Generation 4 peaking in pure legend count.
-
 ```{r}
-library(ggplot2)
-library(ggimage)
-
 img_df <- pokemon_type_stats %>% select(type_1, fastest, img)
 
 ggplot(img_df, aes(x = 1, y = type_1)) +
   geom_image(aes(image = img), size = 0.1, by = "height", asp = 1) +
-  geom_text(aes(label = fastest), 
-            nudge_x = 0.12, 
-            hjust   = 0, 
+  geom_text(aes(label = fastest),
+            nudge_x = 0.12,
+            hjust   = 0,
             size    = 3) +
   scale_y_discrete(
     limits = rev(unique(img_df$type_1)),
@@ -330,21 +297,12 @@ ggplot(img_df, aes(x = 1, y = type_1)) +
     plot.margin = margin(20, 20, 20, 20)
   ) +
   labs(title = "Fastest Pokémon per Type: Image & Name")
-
 ```
-
-This grid arranges each type vertically, showing the sprite(image) and name of its single fastest Pokémon for an at‑a‑glance comparison.
 
 ## Conclusion
 
-This exploration of Pokémon stats by type revealed several fun patterns:
-
-\- **Speed vs. Attack:** Flying and Electric types lead in speed, Dragon and Fighting types in attack.\
-- **Stat Leaders:** Mega Mewtwo and Rayquaza top overall stats (\>780), Primal Kyogre/Groudon next.\
+- **Speed vs. Attack:** Flying and Electric types lead in speed, Dragon and Fighting types in attack.
+- **Stat Leaders:** Mega Mewtwo and Rayquaza top overall stats (>780), Primal Kyogre/Groudon next.
 - **Generation Trends:** Generation 4 introduced the most Legendaries; later gens taper off.
-
-Flying and Electric types are the fastest, while Dragon types pack the strongest punches. Although Fairy types are gentle in nature, their performance stats reflect that. These patterns highlight how certain type‑stat synergies (e.g. Dragon/Fighting) dominate competitive play.
-
-\
 
 *Thank you for exploring Pokémon stats with me!*
