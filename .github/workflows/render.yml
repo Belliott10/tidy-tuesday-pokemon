@@ -46,7 +46,11 @@ jobs:
           "
 
       - name: Install TinyTeX
-        run: Rscript -e "tinytex::install_tinytex()"
+        run: |
+          Rscript -e "
+          .libPaths('/home/runner/R/library')
+          tinytex::install_tinytex()
+          "
 
       - name: Render PDF
         run: |
